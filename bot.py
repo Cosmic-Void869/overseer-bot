@@ -1,9 +1,30 @@
+import os
+import asyncio
+from threading import Thread
 import discord
 from discord.ext import commands
-import asyncio
-import os
+from flask import Flask
 
-# Securely pulls your token from the hosting environment settings
+# ==========================================
+# 0. FLASK WEB SERVER (FREE RENDER WORKAROUND)
+# ==========================================
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is online and running 24/7!"
+
+def run_web():
+    # Render dynamically assigns a port via environment variables
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+# Fires up the web server in a background thread so the bot runs normally
+Thread(target=run_web).start()
+
+# ==========================================
+# BOT INITIALIZATION
+# ==========================================
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 intents = discord.Intents.default()
@@ -49,7 +70,6 @@ async def void_eclipse(ctx, target: discord.Member):
     await target.add_roles(*saved_roles)
     await ctx.send(f"The Eclipse has passed. {target.mention} has returned.")
 
-
 # ==========================================
 # 2. SURVIVOR POWER: !contagion @user
 # ==========================================
@@ -69,7 +89,6 @@ async def contagion(ctx, target: discord.Member):
     if target.id in infected_users:
         del infected_users[target.id]
         await ctx.send(f"{target.mention}'s status has returned to normal.")
-
 
 # ==========================================
 # 3. CHAMPION POWER: !total_silence
@@ -97,14 +116,18 @@ async def total_silence(ctx):
 
     await ctx.send("Silence period has concluded. Text channels restored.")
 
-
+# ==========================================
+# 4. EVENTS & ERROR HANDLING
+# ==========================================
 @bot.event
 async def on_message(message):
     if message.author.id in infected_users and not message.content.startswith("!"):
-        await message.delete()
-        await message.channel.send(f"**{message.author.display_name}**: Text muted due to status effect.")
+        try:
+            await message.delete()
+            await message.channel.send(f"**{message.author.display_name}**: Text muted due to status effect.")
+        except:
+            pass
     await bot.process_commands(message)
-
 
 @bot.event
 async def on_command_error(ctx, error):
