@@ -1,23 +1,7 @@
 import os
 import asyncio
-from threading import Thread
 import discord
 from discord.ext import commands
-from flask import Flask
-
-# ==========================================
-# 0. FLASK WEB SERVER (FREE RENDER WORKAROUND)
-# ==========================================
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot is online and running 24/7!"
-
-def run_web():
-    # Render dynamically assigns a port via environment variables
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
 
 # ==========================================
 # BOT INITIALIZATION
@@ -139,11 +123,6 @@ async def on_command_error(ctx, error):
 # 5. SAFE STARTUP EXECUTION
 # ==========================================
 if __name__ == "__main__":
-    # Start the Flask web server thread right before launching the bot cleanly
-    web_thread = Thread(target=run_web)
-    web_thread.daemon = True
-    web_thread.start()
-    
     if TOKEN:
         bot.run(TOKEN)
     else:
