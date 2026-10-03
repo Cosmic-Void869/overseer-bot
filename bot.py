@@ -19,9 +19,6 @@ def run_web():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
-# Fires up the web server in a background thread so the bot runs normally
-Thread(target=run_web).start()
-
 # ==========================================
 # BOT INITIALIZATION
 # ==========================================
@@ -138,4 +135,16 @@ async def on_command_error(ctx, error):
             pass
         await ctx.author.send("Access denied: Required role missing.")
 
-bot.run(TOKEN)
+# ==========================================
+# 5. SAFE STARTUP EXECUTION
+# ==========================================
+if __name__ == "__main__":
+    # Start the Flask web server thread right before launching the bot cleanly
+    web_thread = Thread(target=run_web)
+    web_thread.daemon = True
+    web_thread.start()
+    
+    if TOKEN:
+        bot.run(TOKEN)
+    else:
+        print("ERROR: DISCORD_TOKEN environment variable is completely empty!")
