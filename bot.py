@@ -21,15 +21,15 @@ async def on_ready():
 
 # Global State Tracking Dictionaries
 infected_users = {}
-shielded_users = {} # Tracks active Void Shields
+shielded_users = {} 
 
 # ==========================================
 # 1. OUTCAST POWER: !void_eclipse @user
 # ==========================================
 @bot.command()
 @commands.has_role("Outcast")
+@commands.cooldown(1, 1800, commands.BucketType.user) # ⏳ 30-minute cooldown
 async def void_eclipse(ctx, target: discord.Member):
-    # Original protection check
     survivor_role = discord.utils.get(ctx.guild.roles, name="Survivor")
     if survivor_role not in target.roles:
         await ctx.send("Target is immune to the Eclipse.")
@@ -66,6 +66,7 @@ async def void_eclipse(ctx, target: discord.Member):
 # ==========================================
 @bot.command()
 @commands.has_role("Survivor")
+@commands.cooldown(1, 1200, commands.BucketType.user) # ⏳ 20-minute cooldown
 async def contagion(ctx, target: discord.Member):
     await ctx.message.delete()
     if target == ctx.author:
@@ -84,6 +85,7 @@ async def contagion(ctx, target: discord.Member):
 # ==========================================
 @bot.command()
 @commands.has_role("Champion")
+@commands.cooldown(1, 86400, commands.BucketType.guild) # ⏳ 24-hour global cooldown
 async def total_silence(ctx):
     await ctx.message.delete()
     await ctx.send(f"Total silence initiated by the Champion.")
@@ -111,6 +113,7 @@ async def total_silence(ctx):
 
 @bot.command()
 @commands.has_role("Outcast")
+@commands.cooldown(1, 300, commands.BucketType.user) # ⏳ 5-minute cooldown
 async def unveil(ctx):
     """🔮 Tactical Power: Exposes everyone currently suffering from Contagion."""
     try: await ctx.message.delete()
@@ -123,6 +126,7 @@ async def unveil(ctx):
 
 @bot.command()
 @commands.has_role("Survivor")
+@commands.cooldown(1, 600, commands.BucketType.user) # ⏳ 10-minute cooldown
 async def shield(ctx, target: discord.Member):
     """🛡️ Defensive Power: Protects a teammate from the Void Eclipse for 5 minutes."""
     try: await ctx.message.delete()
@@ -136,6 +140,7 @@ async def shield(ctx, target: discord.Member):
 
 @bot.command()
 @commands.has_role("Champion")
+@commands.cooldown(1, 300, commands.BucketType.user) # ⏳ 5-minute cooldown
 async def dispel(ctx, target: discord.Member):
     """🏆 Defensive Power: Instantly removes a text Contagion from a user."""
     try: await ctx.message.delete()
@@ -145,6 +150,41 @@ async def dispel(ctx, target: discord.Member):
         await ctx.send(f"✨ **The Champion has spoken!** {target.mention} has been cleansed of Contagion.")
     else:
         await ctx.send(f"❌ {target.mention} is not currently infected.")
+
+@bot.command(name="factions")
+async def factions_help(ctx):
+    """📜 Public Power: Displays an on-demand game guide card."""
+    try: await ctx.message.delete()
+    except: pass
+    
+    embed = discord.Embed(
+        title="⚔️ FACTION WARFARE PROTOCOL ⚔️", 
+        description="Every faction holds one offensive mastery and one strategic counter-play utility.",
+        color=discord.Color.from_rgb(114, 137, 218)
+    )
+    
+    embed.add_field(
+        name="🔥 OFFENSIVE ABILITIES", 
+        value=(
+            "**🏆 Champion:** `!total_silence`\n*Mutes all channels for 90s (24h cd)*\n\n"
+            "**☣️ Survivor:** `!contagion @user`\n*Deletes target text for 120s (20m cd)*\n\n"
+            "**🔮 Outcast:** `!void_eclipse @user`\n*Strips and isolates target for 60s (30m cd)*"
+        ), 
+        inline=True
+    )
+    
+    embed.add_field(
+        name="🛡️ COUNTER-PLAY ACTIONS", 
+        value=(
+            "**✨ Dispel:** `!dispel @user`\n*Instantly purges contagion (5m cd)*\n\n"
+            "**🛡️ Shield:** `!shield @user`\n*Blocks void eclipse for 5 mins (10m cd)*\n\n"
+            "**👁️ Unveil:** `!unveil`\n*Reveals active infected list (5m cd)*"
+        ), 
+        inline=True
+    )
+    
+    embed.set_footer(text="System active across our 4 text channels. Administrator targets remain completely immune.")
+    await ctx.send(embed=embed)
 
 # ==========================================
 # 4. EVENTS & ERROR HANDLING
@@ -161,6 +201,17 @@ async def on_message(message):
 
 @bot.event
 async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        try: await ctx.message.delete()
+        except: pass
+        minutes = int(error.retry_after // 60)
+        seconds = int(error.retry_after % 60)
+        if minutes > 0:
+            await ctx.author.send(f"⏳ **Ability Recharging:** You must wait `{minutes}m {seconds}s` before using `!{ctx.command.name}` again.")
+        else:
+            await ctx.author.send(f"⏳ **Ability Recharging:** You must wait `{seconds}s` before using `!{ctx.command.name}` again.")
+        return
+
     if isinstance(error, commands.MissingRole):
         try:
             await ctx.message.delete()
@@ -176,3 +227,4 @@ if __name__ == "__main__":
         bot.run(TOKEN)
     else:
         print("ERROR: DISCORD_TOKEN environment variable is completely empty!")
+
