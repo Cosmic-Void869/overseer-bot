@@ -19,15 +19,25 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f'Bot is online and ready.')
 
+# Global State Tracking Dictionaries
+infected_users = {}
+shielded_users = {} # Tracks active Void Shields
+
 # ==========================================
 # 1. OUTCAST POWER: !void_eclipse @user
 # ==========================================
 @bot.command()
 @commands.has_role("Outcast")
 async def void_eclipse(ctx, target: discord.Member):
+    # Original protection check
     survivor_role = discord.utils.get(ctx.guild.roles, name="Survivor")
     if survivor_role not in target.roles:
         await ctx.send("Target is immune to the Eclipse.")
+        return
+
+    # 🛡️ INTEGRATED NEW SHIELD CHECK (Fails if shielded)
+    if target.id in shielded_users:
+        await ctx.send(f"🛡️ **Eclipse Failed!** {target.mention} is currently protected by a Survivor's Shield.")
         return
 
     await ctx.message.delete()
@@ -54,8 +64,6 @@ async def void_eclipse(ctx, target: discord.Member):
 # ==========================================
 # 2. SURVIVOR POWER: !contagion @user
 # ==========================================
-infected_users = {}
-
 @bot.command()
 @commands.has_role("Survivor")
 async def contagion(ctx, target: discord.Member):
@@ -96,6 +104,47 @@ async def total_silence(ctx):
         await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
 
     await ctx.send("Silence period has concluded. Text channels restored.")
+
+# ==========================================
+# 🚀 NEW EXPANDED FACTION COMMANDS
+# ==========================================
+
+@bot.command()
+@commands.has_role("Outcast")
+async def unveil(ctx):
+    """🔮 Tactical Power: Exposes everyone currently suffering from Contagion."""
+    try: await ctx.message.delete()
+    except: pass
+    if not infected_users:
+        await ctx.send("🔮 *The Outcast peers into the fog... No active infections found.*")
+        return
+    mentions = [f"<@{user_id}>" for user_id in infected_users.keys()]
+    await ctx.send(f"👁️ **The Outcast unveils the plagues:** {', '.join(mentions)} are currently infected!")
+
+@bot.command()
+@commands.has_role("Survivor")
+async def shield(ctx, target: discord.Member):
+    """🛡️ Defensive Power: Protects a teammate from the Void Eclipse for 5 minutes."""
+    try: await ctx.message.delete()
+    except: pass
+    shielded_users[target.id] = True
+    await ctx.send(f"🛡️ {ctx.author.mention} applied a **Void Shield** to {target.mention} for 5 minutes!")
+    await asyncio.sleep(300)
+    if target.id in shielded_users:
+        del shielded_users[target.id]
+        await ctx.send(f"🍃 {target.mention}'s Void Shield has expired.")
+
+@bot.command()
+@commands.has_role("Champion")
+async def dispel(ctx, target: discord.Member):
+    """🏆 Defensive Power: Instantly removes a text Contagion from a user."""
+    try: await ctx.message.delete()
+    except: pass
+    if target.id in infected_users:
+        del infected_users[target.id]
+        await ctx.send(f"✨ **The Champion has spoken!** {target.mention} has been cleansed of Contagion.")
+    else:
+        await ctx.send(f"❌ {target.mention} is not currently infected.")
 
 # ==========================================
 # 4. EVENTS & ERROR HANDLING
