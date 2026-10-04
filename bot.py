@@ -17,7 +17,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f'Bot is online and ready.')
+    print(f'Bot is online and ready. Logged in as {bot.user}')
 
 # Global State Tracking Dictionaries
 infected_users = {}
@@ -188,7 +188,7 @@ async def factions_help(ctx):
 
 
 # ==========================================
-# 🎮 DISCORD ACTIVITY LAUNCH COMMAND
+# 2. DISCORD ACTIVITY LAUNCH COMMAND
 # ==========================================
 @bot.command()
 async def play(ctx):
@@ -200,43 +200,25 @@ async def play(ctx):
     voice_channel = ctx.author.voice.channel
     
     try:
-        # Create the visual game invite link pointing directly to your activity layout
+        # FIX: The application ID must be passed as an integer (no quotes around it)
         invite = await voice_channel.create_invite(
-                        target_application_id="1555838141187760128",
-                target_type=discord.InviteTarget.embedded_application,
+            target_application_id=1555838141187760128,
+            target_type=discord.InviteTarget.embedded_application,
             max_age=3600 # Link stays valid for 1 hour
         )
         
         await ctx.send(f"🚀 **Cosmic Defender Ready!** Click the link to launch the game inside your voice channel:\n{invite.url}")
         
     except discord.Forbidden:
-        await ctx.send("❌ I don't have permission to create invites in this voice channel!")
+        await ctx.send("❌ I don't have permission to create invites in this voice channel.")
     except Exception as e:
-        print(f"Error creating activity invite: {e}")
-        await ctx.send("❌ Failed to create the game invite. Double check your URL mapping in the portal!")
-
+        print(f"Error launching activity: {e}")
+        await ctx.send("❌ Failed to launch the game. Check the bot logs.")
 
 # ==========================================
-# 4. EVENTS & ERROR HANDLING
+# 🔌 START CONNECTION
 # ==========================================
-@bot.event
-async def on_message(message):
-    if message.author.id in infected_users and not message.content.startswith("!"):
-        try:
-            await message.delete()
-            await message.channel.send(f"**{message.author.display_name}**: Text muted due to status effect.")
-        except:
-            pass
-    await bot.process_commands(message)
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandOnCooldown):
-        try: await ctx.message.delete()
-        except: pass
-        minutes = int(error.retry_after // 60)
-        seconds = int(error.retry_after % 60)
-        if minutes > 0:
-            await ctx.author.send(f"⏳ **Ability Recharging:** You must wait `{minutes}m {seconds}s` before using `!{ctx.command.name}` again.")
-        else:
-            await ctx.author.send(f"⏳ **Ability Recharging:** You must wait `{seconds}s` before using `!{ctx.command.name}` again.")
+if TOKEN:
+    bot.run(TOKEN)
+else:
+    print("CRITICAL ERROR: 'DISCORD_TOKEN' environment variable is missing from system setup!")
