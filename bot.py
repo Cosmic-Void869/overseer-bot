@@ -186,6 +186,36 @@ async def factions_help(ctx):
     embed.set_footer(text="System active across our 4 text channels. Administrator targets remain completely immune.")
     await ctx.send(embed=embed)
 
+
+# ==========================================
+# 🎮 DISCORD ACTIVITY LAUNCH COMMAND
+# ==========================================
+@bot.command()
+async def play(ctx):
+    """🎮 Launches the Cosmic Defender game activity inside a voice channel."""
+    if not ctx.author.voice:
+        await ctx.send("❌ You need to join a voice channel first to launch the game!")
+        return
+        
+    voice_channel = ctx.author.voice.channel
+    
+    try:
+        # Create the visual game invite link pointing directly to your activity layout
+        invite = await voice_channel.create_invite(
+            target_application_id=1555838141187760128, # Your specific Bot ID
+            target_type=discord.TargetType.embedded_application,
+            max_age=3600 # Link stays valid for 1 hour
+        )
+        
+        await ctx.send(f"🚀 **Cosmic Defender Ready!** Click the link to launch the game inside your voice channel:\n{invite.url}")
+        
+    except discord.Forbidden:
+        await ctx.send("❌ I don't have permission to create invites in this voice channel!")
+    except Exception as e:
+        print(f"Error creating activity invite: {e}")
+        await ctx.send("❌ Failed to create the game invite. Double check your URL mapping in the portal!")
+
+
 # ==========================================
 # 4. EVENTS & ERROR HANDLING
 # ==========================================
@@ -210,21 +240,3 @@ async def on_command_error(ctx, error):
             await ctx.author.send(f"⏳ **Ability Recharging:** You must wait `{minutes}m {seconds}s` before using `!{ctx.command.name}` again.")
         else:
             await ctx.author.send(f"⏳ **Ability Recharging:** You must wait `{seconds}s` before using `!{ctx.command.name}` again.")
-        return
-
-    if isinstance(error, commands.MissingRole):
-        try:
-            await ctx.message.delete()
-        except:
-            pass
-        await ctx.author.send("Access denied: Required role missing.")
-
-# ==========================================
-# 5. SAFE STARTUP EXECUTION
-# ==========================================
-if __name__ == "__main__":
-    if TOKEN:
-        bot.run(TOKEN)
-    else:
-        print("ERROR: DISCORD_TOKEN environment variable is completely empty!")
-
