@@ -202,7 +202,7 @@ async def play(ctx):
     try:
         # Create the visual game invite link pointing directly to your activity layout
         invite = await voice_channel.create_invite(
-            target_application_id=1555838141187760128, # Your specific Bot ID
+                        target_application_id="1555838141187760128",
             target_type=discord.TargetType.embedded_application,
             max_age=3600 # Link stays valid for 1 hour
         )
